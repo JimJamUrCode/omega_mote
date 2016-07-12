@@ -1,0 +1,40 @@
+{
+  "buttons": [
+    {
+      "gpiopin": 26,
+      "postAddress": "/macros/Living%20Room/Cable"
+    },
+    {
+      "gpiopin": 23,
+      "postAddress": "/macros/Living%20Room/Cable%20HD"
+    },
+    {
+      "gpiopin": 14,
+      "postAddress": "/macros/Living%20Room/Radio"
+    },
+    {
+      "gpiopin": 13,
+      "postAddress": "/macros/Living%20Room/Apple%20Tv"
+    },
+    {
+      "gpiopin": 8,
+      "postAddress": "/remotes/Outlets/Upstairs_Outlet_On/0000000000000001/simulate"
+    },
+    {
+      "gpiopin": 7,
+      "postAddress": "/remotes/Outlets/Upstairs_Outlet_Off/0000000000000002/simulate"
+    },
+    {
+      "gpiopin": 6,
+      "postAddress": "/remotes/Receiver/Preset_Up"
+    },
+    {
+      "gpiopin": 1,
+      "postAddress": "/remotes/Receiver/Preset_Down"
+    },
+    {
+      "gpiopin": 0,
+      "postAddress": "/macros/Living%20Room/Turn%20Off"
+    }
+  ]
+}
