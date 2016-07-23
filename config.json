@@ -13,14 +13,6 @@
       "postAddress": "/macros/Living%20Room/Radio"
     },
     {
-      "gpiopin": 13,
-      "postAddress": "/macros/Living%20Room/Apple%20Tv"
-    },
-    {
-      "gpiopin": 8,
-      "postAddress": "/remotes/Outlets/Upstairs_Outlet_On/0000000000000001/simulate"
-    },
-    {
       "gpiopin": 7,
       "postAddress": "/remotes/Outlets/Upstairs_Outlet_Off/0000000000000002/simulate"
     },

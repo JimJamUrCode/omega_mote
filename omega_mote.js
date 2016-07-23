@@ -1,35 +1,43 @@
-var customgpio = require('./customgpio');
 var http = require('http');
-var fs = require("fs");
-var path = require("path");
 var exec = require('child_process').exec;
+var customGPIO = require('./customGPIO');
 
 var buttonStates = {};
 var buttonAddresses = {};
 var config = {};
 var remoteHost = "192.168.1.103";
+var value = 0;
+var buttonsLength = 0;
+var lastFreeMemCheck = 0;
+
+var myGPIO = new customGPIO();
 
 var init = function()
 {
   try
   {
+    lastFreeMemCheck = Date.now();
+    
     switchToMultiColor();
     
     loadConfigFile();
     
     setAllInputs(0, doneSettingAllInputs);
     
+    buttonsLength = config.buttons.length;
     function doneSettingAllInputs()
     {
-      for(var i = 0; i < config.buttons.length; i++)
+      for(var i = 0; i < buttonsLength; i++)
       {
         console.log("Creating pin: " + config.buttons[i].gpiopin);
-        initpin(config.buttons[i].gpiopin, 'in');
+        myGPIO.initpin(config.buttons[i].gpiopin, 'in');
+       
+        //Keeping track of button states and addresses to those buttons
         buttonStates[config.buttons[i].gpiopin] = "off";
         buttonAddresses[config.buttons[i].gpiopin] = config.buttons[i].postAddress;
       }
       
-      for(var i = 0; i < config.buttons.length; i++)
+      for(var i = 0; i < buttonsLength; i++)
       {
         command = "fast-gpio set " + config.buttons[i].gpiopin + " 0"
         console.log(command);
@@ -56,7 +64,7 @@ var loadConfigFile = function()
   try
   {
     var home = process.env.HOME;
-    config = require(home + '/omega_gpio/config.json');
+    config = require(home + '/omega_mote/config.json');
   }
   catch (e)
   {
@@ -70,6 +78,7 @@ var loadConfigFile = function()
 
 var setAllInputs = function(pinIdx, callback)
 {
+  //Using fast-gpio to set pins the way we need
   var command = "fast-gpio set-input " + config.buttons[pinIdx].gpiopin;
   console.log("Setting pin " + config.buttons[pinIdx].gpiopin + " to an input.");
   execute(command, function(error, stdout, stderr){
@@ -84,13 +93,15 @@ var setAllInputs = function(pinIdx, callback)
 
 var checkButton = function()
 {
-  for(var i = 0; i < config.buttons.length; i++)
+  //readFreeMem();
+  
+  for(var i = 0; i < buttonsLength; i++)
   {
-    var val = readinput(config.buttons[i].gpiopin);
-    // console.log("Value: " + val);
+    value = myGPIO.readinput(config.buttons[i].gpiopin);
+    // console.log("Value: " + value);
     // console.log("buttonStates: " + JSON.stringify(buttonStates));
     
-    if (val == 0)
+    if (value == 0)
     {
       if (buttonStates[config.buttons[i].gpiopin] == "on")
       {
@@ -105,10 +116,11 @@ var checkButton = function()
         console.log("Pin " + config.buttons[i].gpiopin + " pressed");
         switchToBlue();
         
+        console.log("Changing Button State...");
         buttonStates[config.buttons[i].gpiopin] = "on";
-        var address = buttonAddresses[config.buttons[i].gpiopin];
-        console.log("Post address: " + address);
-        postToAddress(address);
+        
+        console.log("Post address: " + buttonAddresses[config.buttons[i].gpiopin]);
+        postToAddress(buttonAddresses[config.buttons[i].gpiopin]);
       }
     }
   }
@@ -159,9 +171,19 @@ var execute = function(command, callback)
     if(stderr)
       console.log(JSON.stringify(stderr));
     
-    callback(error, stdout, stderr);
+    if(callback != null && callback != undefined)
+      callback(error, stdout, stderr);
   });
 };
+
+var readFreeMem = function()
+{
+  if(Date.now() - lastFreeMemCheck > 2000)
+  {
+    lastFreeMemCheck = Date.now();
+    execute("free -m");
+  }
+}
 
 var switchToBlue = function()
 {
@@ -214,67 +236,10 @@ var switchToMultiColor = function()
 
 
 
-var _exportpath = "/sys/class/gpio/gpiochip0/subsystem/export";
-_unexportpath = "/sys/class/gpio/gpiochip0/subsystem/unexport";
-var _gpiopath = "/sys/class/gpio/gpio";
 
 
 
-var writetofs = function(fname, data)
-{
-  try
-  {
-    fs.writeFileSync(fname, data);
-    console.log("The file was saved!");
-  }
-  catch(e)
-  {
-    console.log("Error writing to file: " + e);
-    switchToRed();
-  }
-}
-
-var readfromfs = function(fname)
-{
-  try
-  {
-    var contents = fs.readFileSync(fname, 'utf8');
-    return contents;
-  }
-  catch(e)
-  {
-    console.log("Error reading from file: " + e);
-    switchToRed();
-    return "0";
-  }
-}
-
-var initpin = function(pin, direction)
-{
-  writetofs(_exportpath, pin);
-  writetofs(_gpiopath + pin + '/direction', direction);
-}
-
-var readinput = function(pin)
-{
-  rdval = readfromfs(_gpiopath + '' + pin + '/value');
-  return rdval;
-}
-
-var closepin = function(pin)
-{
-  writetofs(_unexportpath, pin)
-}
-
-var setoutput = function(pin, value)
-{
-  if (value == 0)
-    wrval = '0';
-  else
-    wrval = '1';
-  writetofs(_gpiopath + pin + '/value', wrval);
-}
-
+//Exit and clean up functions
 
 process.on('SIGINT', function ()
 {
@@ -286,10 +251,10 @@ process.on('SIGINT', function ()
 
 var closePins = function()
 {
-  for(var i = 0; i < config.buttons.length; i++)
+  for(var i = 0; i < buttonsLength; i++)
   {
     console.log("Closing pin: " + config.buttons[i].gpiopin);
-    closepin(config.buttons[i].gpiopin);
+    myGPIO.closepin(config.buttons[i].gpiopin);
   }
 }
 
